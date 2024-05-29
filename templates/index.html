@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enter Lyrics</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #4B6386;
+            overflow: hidden;
+        }
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+        }
+        .background-video {
+            position: absolute;
+            top: 20%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -3;
+        }
+        .background-image {
+            position: absolute;
+            top: 100;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('media/backgrounddetail.png') no-repeat center center;
+            background-size: cover;
+            z-index: -2;
+        }
+        .container {
+            background-color: rgba(57, 93, 105, 1);
+            padding: 20px;
+            border-radius: 10px;
+            width: 35%;
+            max-width: 800px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1; 
+        }
+        .container label {
+            font-size: 24px;
+            color: #fff;
+            display: block;
+            margin-bottom: 10px;
+            margin: 10px 0 10px;
+        }
+        .container textarea {
+            width: calc(100% - 40px);
+            height: 150px;
+            border-radius: 10px;
+            padding: 10px;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 18px;
+            border: 1px solid #ccc;
+            margin: 25px auto 0;
+            display: block;
+        }
+        .container input[type="submit"] {
+            margin-top: 10px;
+            margin-bottom: 5px;
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: rgba(67, 113, 139, 1);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .container input[type="submit"]:hover {
+            background-color: rgba(67, 113, 139, 1);
+        }
+    </style>
+</head>
+<body>
+    <div class="background-container">
+        <video autoplay muted loop class="background-video">
+            <source src="{{ url_for('media', filename='background.mp4') }}" type="video/mp4">
+        </video>
+        <div class="background-image"></div>
+    </div>
+
+    <div class="container">
+        <label for="lyrics">PLEASE ENTER YOUR LYRICS</label>
+        <form action="/predict_genre" method="POST" onsubmit="return validateInput();">
+            <textarea id="lyrics" name="lyrics" rows="4" cols="50" required></textarea><br>
+            <input type="submit" value="PREDICT" style="font-family: 'Times New Roman', Times, serif;">
+        </form>
+    </div>
+
+    <script>
+        function validateInput() {
+            var textarea = document.getElementById('lyrics');
+            var input = textarea.value.trim();
+
+            var isPureNumbers = /^[0-9]+$/.test(input);
+            var isPurePunctuation = /^[\p{P}\p{S}]+$/u.test(input);
+            var hasNoWords = !/[a-zA-Z]+/.test(input);
+
+            if (!input || isPureNumbers || isPurePunctuation || hasNoWords) {
+                textarea.setCustomValidity("Please enter valid lyrics."); 
+                return false; 
+            } else {
+                textarea.setCustomValidity(""); 
+                return true;
+            }
+        }
+
+        document.getElementById('lyrics').addEventListener('input', function() {
+            var textarea = document.getElementById('lyrics');
+            var input = textarea.value.trim();
+
+            var isPureNumbers = /^[0-9]+$/.test(input);
+            var isPurePunctuation = /^[\p{P}\p{S}]+$/u.test(input);
+            var hasNoWords = !/[a-zA-Z]+/.test(input);
+
+            if (!input || isPureNumbers || isPurePunctuation || hasNoWords) {
+                textarea.setCustomValidity("Please enter valid lyrics.");
+            } else {
+                textarea.setCustomValidity("");
+            }
+        });
+    </script>
+
+</body>
+</html>
+

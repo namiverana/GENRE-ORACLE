@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genre Oracle</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #4B6386;
+            overflow: hidden;
+        }
+
+        .background-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            min-width: 100%;
+            min-height: 100%;
+            z-index: -2; 
+            object-fit: cover;
+        }
+        
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('media/homepagedetail.png') no-repeat center center;
+            background-size: cover;
+            z-index: -2;
+            object-fit: cover;
+        }             
+
+        .container {
+            position: relative;
+            height: 100%;
+        }
+
+        .container a {
+            display: inline-block; 
+            position: fixed;
+            bottom: 200px; 
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 25px;
+            font-weight: bold;
+            background-color: rgba(67, 113, 139, 1);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+    </style>
+</head>
+<body>
+    <video autoplay muted loop class="background-video">
+        <source src="{{ url_for('media', filename='background.mp4') }}" type="video/mp4">
+    </video>
+    <div class="background-image"></div>
+    <div class="container">
+        <a href="/index">START NOW</a>
+    </div>
+</body>
+</html>
+

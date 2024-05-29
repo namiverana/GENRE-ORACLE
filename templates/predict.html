@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Result</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            color: black;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #4B6386;
+            position: relative;
+        }
+
+        .background-video {
+            position: absolute;
+            top: 20%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -2;
+        }
+
+        .background-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('media/backgrounddetail.png') no-repeat center center;
+            background-size: cover;
+            z-index: -1;
+        }
+
+        .main-content {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px;
+        }
+
+
+
+        .left-column {
+            width: 44%;
+            margin: 0 50px;
+            display: flex;
+            flex-direction: column;
+            margin-top: 310px;
+            margin-left: 25px;
+        }
+
+        .right-column {
+            width: 200%;
+            margin: 0 50px;
+            margin-top: 310px;
+            position: relative;
+            margin-rifht: 100px;
+        }
+        
+        .content-box {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        
+        .content-box h2 {
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            text-align: center;
+        }        
+
+        .genre-label {
+            font-size: 24px;
+        }
+
+        .spotify-playlists {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Gap between items */
+            max-height: 400px; /* Limit height to fit within container */
+            overflow-y: auto; /* Add vertical scrollbar if needed */
+        }
+        
+        .spotify-playlists .item {
+            display: flex;
+            align-items: center;
+            background-color: rgba(57, 93, 105, 1);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all ease 0.4s;
+            padding: 10px;
+        }
+        
+        .spotify-playlists .item:hover {
+            background-color: #252525;
+        }
+        
+        .spotify-playlists .item img {
+            width: 80px; 
+            height: 80px; 
+            border-radius: 6px;
+            margin-right: 10px;
+        }
+        
+        .spotify-playlists .item .details {
+            display: flex; 
+            align-items: center; 
+            color: white;
+        }
+        
+        .spotify-playlists .item h4 {
+            font-size:20px;
+            margin-left: 20px; 
+            margin-bottom: 25px; 
+            color: white;
+        }
+
+        .spotify-playlists .item p {
+            font-size: 18px;
+            margin-left: 15px; 
+            margin-bottom: 17px; 
+            color: white;
+        }
+        
+        .spotify-playlists .item .artist {
+            margin-left: 10px; 
+            font-size: 12px;
+        }
+        
+        .spotify-playlists .item audio {
+            margin-left: auto; 
+        }
+
+        .buttons-container {
+            display: flex;
+            justify-content: flex-end; 
+            gap: 20px; 
+            margin-top: 55px; 
+            margin-bottom: 200px;
+            margin-left: 100px;
+        }
+
+        .button {
+            padding: 15px 30px; 
+            font-size: 18px; 
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            background-color: rgba(67, 113, 139, 1); 
+            font-family: 'Times New Roman', Times, serif; 
+        }
+
+    </style>
+</head>
+
+<body>
+    <video autoplay muted loop class="background-video">
+        <source src="{{ url_for('media', filename='background.mp4') }}" type="video/mp4">
+    </video>
+
+    <div class="background-image"></div>
+
+    <div class="main-content">
+        <div class="left-column">
+            <div id="predictedResult" class="content-box" style="text-align: center;">
+                <h2 style="margin-bottom: 10px;">Prediction Result</h2>
+                <h2 style="font-size: 60px; margin-top: -10px;">{{ prediction|upper }}</h2>
+            </div>            
+            <div id="genreProbabilities" class="content-box" style="text-align: center;">
+                <h2 style="font-size: 24px; margin-top: 5px;">Genre Probabilities</h2>
+                <canvas id="genreChart" width="400" height="200"></canvas>
+            </div>                   
+        </div>
+        <div class="right-column">
+            <div id="songRecommendation" class="content-box">
+                <h2 id="recommendationHeader" style="text-align: center; margin-top: 5px;">{{ prediction|upper }} Song Recommendations</h2>
+                <div id="playlistContainer" class="spotify-playlists"></div>
+            </div>
+            <div class="buttons-container">
+                <button class="button guess-again" onclick="location.href='{{ url_for('index') }}'">Guess Again</button>
+                <button class="button exit" onclick="location.href='{{ url_for('home') }}'">Exit</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        
+        var genreProbabilities = {{ probabilities|tojson }};
+        var prediction = '{{ prediction|upper }}';
+
+        var genres = Object.keys(genreProbabilities);
+        var probabilities = Object.values(genreProbabilities);
+
+        document.getElementById('recommendationHeader').innerText = prediction + " Song Recommendations";
+
+        var ctx = document.getElementById('genreChart').getContext('2d');
+        var genreChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: genres.map(function(genre) { return genre.toUpperCase(); }),
+                datasets: [{
+                    label: 'Probability (%)',
+                    data: probabilities,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                },
+                plugins: {
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        formatter: function(value, context) {
+                            return value + '%';
+                        },
+                        fontColor: 'black',
+                        fontFamily: 'Times New Roman' 
+                    }
+                },
+                legend: {
+                    display: false 
+                }
+            }
+        });
+
+        var songsPerGenre = {
+            "BLUES": [
+                { "title": "Hoochie Coochie Man", "artist": "Muddy Waters", "src": "blues1.mp3", "image": "blues1.jpg" },
+                { "title": "Dark was the Night, Cold was the Ground", "artist": "Blind Willie Johnson", "src": "blues2.mp3", "image": "blues2.jpg" },
+                { "title": "I'm a King Bee", "artist": "Slim Harpo", "src": "blues3.mp3", "image": "blues3.jpg" },
+                { "title": "Me and My Chauffeur Blues", "artist": "Memphis Minnie", "src": "blues4.mp3", "image": "blues4.jpg" },
+                { "title": "Cross Roads Blues", "artist": "Robert Johnson", "src": "blues5.mp3", "image": "blues5.jpg" },
+                { "title": "Devil got my Women", "artist": "Skip James", "src": "blues6.mp3", "image": "blues6.jpg" },
+                { "title": "Dust my Broom", "artist": "Elmore James", "src": "blues7.mp3", "image": "blues7.jpg" },
+                { "title": "Red House", "artist": "Jimi Hendrix", "src": "blues8.mp3", "image": "blues8.jpg" }
+            ],
+
+            "COUNTRY": [
+                { "title": "Redneck Women", "artist": "Gretchen Wilson", "src": "country1.mp3", "image": "country1.jpg" },
+                { "title": "People got a Lotta Nerve", "artist": "Neko Case", "src": "country2.mp3", "image": "country2.jpg" },
+                { "title": "Songs About Rain", "artist": "Gary Allan", "src": "country3.mp3", "image": "country3.jpg" },
+                { "title": "In Color", "artist": "Jamey Johnson", "src": "country4.mp3", "image": "country4.jpg" },
+                { "title": "I Hope You Dance", "artist": "Lee Ann Womack", "src": "country5.mp3", "image": "country5.jpg" },
+                { "title": "Springsteen", "artist": "Eric Church", "src": "country6.mp3", "image": "country6.jpg" },
+                { "title": "Before He Cheats", "artist": "Carrie Underwood", "src": "country7.mp3", "image": "country7.jpg" },
+                { "title": "Alcohol", "artist": "Brad Paisley", "src": "country8.mp3", "image": "country8.jpg" }
+            ],
+
+            "HIPHOP": [
+                { "title": "Cars with the Boom", "artist": "L'trimm", "src": "hiphop1.mp3", "image": "hiphop1.jpg" },
+                { "title": "Get Low", "artist": "Lil Jon and The Eastside Boys feat. Ying Yang Twins", "src": "hiphop2.mp3", "image": "hiphop2.jpg" },
+                { "title": "Paper Planes", "artist": "M.I.A", "src": "hiphop3.mp3", "image": "hiphop3.jpg" },
+                { "title": "Empire State of Mind", "artist": "Jay Z and Alicia Keys", "src": "hiphop4.mp3", "image": "hiphop4.jpg" },
+                { "title": "Slow Down", "artist": "Brand Nubian", "src": "hiphop5.mp3", "image": "hiphop5.jpg" },
+                { "title": "Tha Crossroads", "artist": "Bone Thugs-N-Harmony", "src": "hiphop6.mp3", "image": "hiphop6.jpg" },
+                { "title": "The Rain (Super Dupa Fly)", "artist": "Missy Elliott", "src": "hiphop7.mp3", "image": "hiphop7.jpg" },
+                { "title": "93 ‘til Infinity", "artist": "Souls of Mischief", "src": "hiphop8.mp3", "image": "hiphop8.jpg" }
+            ],
+
+            "METAL": [
+                { "title": "Master Of Puppets", "artist": "Metallica", "src": "metal1.mp3", "image": "metal1.jpg" },
+                { "title": "Holy Wars", "artist": "Megadeth", "src": "metal2.mp3", "image": "metal2.jpg" },
+                { "title": "Paranoid", "artist": "Black Sabbath", "src": "metal3.mp3", "image": "metal3.jpg" },
+                { "title": "Painkiller", "artist": "Judas Priest", "src": "metal4.mp3", "image": "metal4.jpg" },
+                { "title": "Holy Diver", "artist": "Dio", "src": "metal5.mp3", "image": "metal5.jpg" },
+                { "title": "Cemetery Gates", "artist": "Pantera", "src": "metal6.mp3", "image": "metal6.jpg" },
+                { "title": "The Four Horsemen", "artist": "Metallica", "src": "metal7.mp3", "image": "metal7.jpg" },
+                { "title": "Raining Blood", "artist": "Slayer", "src": "metal8.mp3", "image": "metal8.jpg" }
+            ],
+            "POP": [
+                { "title": "Break My Heart", "artist": "Dua Lipa", "src": "pop1.mp3", "image": "pop1.jpg" },
+                { "title": "Banana", "artist": "Conkarah (ft. Shaggy)", "src": "pop2.mp3", "image": "pop2.jpg" },
+                { "title": "Play Date", "artist": "Melanie Martinez", "src": "pop3.mp3", "image": "pop3.jpg" },
+                { "title": "Rover (Mu la la)", "artist": "SIMBA ft. DTG", "src": "pop4.mp3", "image": "pop4.jpg" },
+                { "title": "Savage Remix", "artist": "Megan Thee Stallion (feat. Beyonce)", "src": "pop5.mp3", "image": "pop5.jpg" },
+                { "title": "WHATS POPPIN", "artist": "Jack Harlow", "src": "pop6.mp3", "image": "pop6.jpg" },
+                { "title": "Death Bed (coffee for your head)", "artist": "Powfu ft. beabadoobee", "src": "pop7.mp3", "image": "pop7.jpg" },
+                { "title": "Summer Feelings", "artist": "Lennon Stella ft. Charlie Puth", "src": "pop8.mp3", "image": "pop8.jpg" }
+            ],
+            "REGGAE": [
+                { "title": "Stir It Up", "artist": "Bob Marley", "src": "reggae1.mp3", "image": "reggae1.jpg" },
+                { "title": "Murderer", "artist": "Barrington Levy", "src": "reggae2.mp3", "image": "reggae2.jpg" },
+                { "title": "Welcome To Jam Rock", "artist": "Damian Marley", "src": "reggae3.mp3", "image": "reggae3.jpg" },
+                { "title": "Vultures", "artist": "Israel Vibration", "src": "reggae4.mp3", "image": "reggae4.jpg" },
+                { "title": "Faith Can Move Mountains", "artist": "Twinkle Brothers", "src": "reggae5.mp3", "image": "reggae5.jpg" },
+                { "title": "Root And Cultures", "artist": "Mikey Dread", "src": "reggae6.mp3", "image": "reggae6.jpg" },
+                { "title": "Mr Bobby", "artist": "Manu Chao & Lyricsun", "src": "reggae7.mp3", "image": "reggae7.jpg" },
+                { "title": "Nah Let Go", "artist": "Gyptian", "src": "reggae8.mp3", "image": "reggae8.jpg" }
+            ],
+            "ROCK": [
+                { "title": "Numb", "artist": "Linkin Park", "src": "rock1.mp3", "image": "rock1.jpg" },
+                { "title": "Zombie", "artist": "The Cranberries", "src": "rock2.mp3", "image": "rock2.jpg" },
+                { "title": "It's My Life", "artist": "Bon Jovi", "src": "rock3.mp3", "image": "rock3.jpg" },
+                { "title": "Bring Me To Life", "artist": "Evanescence", "src": "rock4.mp3", "image": "rock4.jpg" },
+                { "title": "Always Somewhere", "artist": "Scorpions", "src": "rock5.mp3", "image": "rock5.jpg" },
+                { "title": "Hotel California", "artist": "Eagles", "src": "rock6.mp3", "image": "rock6.jpg" },
+                { "title": "Sweet Child O’ Mine", "artist": "Guns N’ Roses", "src": "rock7.mp3", "image": "rock7.jpg" },
+                { "title": "She's Gone", "artist": "Steelheart", "src": "rock8.mp3", "image": "rock8.jpg" }
+            ],
+            "SPIRITUAL": [
+                { "title": "I Can Go In", "artist": "Abigail Miller", "src": "spiritual1.mp3", "image": "spiritual1.png" },
+                { "title": "For All He's Done", "artist": "Assurance Trio", "src": "spiritual2.mp3", "image": "spiritual2.jpg" },
+                { "title": "Still", "artist": "The Heritage Quartet", "src": "spiritual3.mp3", "image": "spiritual3.jpg" },
+                { "title": "To God Be the Glory", "artist": "Acapeldridge", "src": "spiritual4.mp3", "image": "spiritual4.jpg" },
+                { "title": "Have a Little Talk with Jesus", "artist": "Jehovah Shalom Acapella", "src": "spiritual5.mp3", "image": "spiritual5.png" },
+                { "title": "Almighty, Unchangeable God", "artist": "Hyles-Anderson College", "src": "spiritual6.mp3", "image": "spiritual6.jpg" },
+                { "title": "Amazing Grace", "artist": "West Coast Baptist College", "src": "spiritual7.mp3", "image": "spiritual7.jpg" },
+                { "title": "People Need the Lord", "artist": "Baptist Virtual Music", "src": "spiritual8.mp3", "image": "spiritual8.jpg" }
+            ],
+        };
+
+        var genres = Object.keys(genreProbabilities);
+        var probabilities = Object.values(genreProbabilities);
+
+        document.getElementById('recommendationHeader').innerText = prediction + " Song Recommendations";
+
+        function populateRecommendations(genre) {
+            var playlistContainer = document.getElementById('playlistContainer');
+            playlistContainer.innerHTML = ''; 
+    
+            var songs = songsPerGenre[genre];
+            songs.forEach(function(song, index) {
+                var item = document.createElement('div');
+                item.classList.add('item');
+                
+                var img = document.createElement('img');
+                img.src = '/static/images/' + song.image; 
+                img.alt = song.title;
+                
+                var play = document.createElement('div');
+                play.addEventListener('click', function() {
+                    console.log("Playing:", song.title, "by", song.artist);
+                });
+                
+                var title = document.createElement('h4');
+                title.innerText = song.title;
+                
+                var artist = document.createElement('p');
+                artist.innerText = song.artist;
+    
+                var audio = document.createElement('audio');
+                audio.controls = true;
+                var source = document.createElement('source');
+                source.src = '/static/music/' + song.src; 
+                source.type = 'audio/mpeg';
+
+                audio.appendChild(source); 
+
+                item.appendChild(img);
+                item.appendChild(play);
+                item.appendChild(title);
+                item.appendChild(artist);
+                item.appendChild(audio);
+                
+                playlistContainer.appendChild(item);
+            });
+        }
+
+        populateRecommendations(prediction);
+
+        var ctx = document.getElementById('genreChart').getContext('2d');
+        var genreChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: genres.map(function(genre) { return genre.toUpperCase(); }),
+                datasets: [{
+                    label: 'Probability (%)',
+                    data: probabilities,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                },
+                plugins: {
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        formatter: function(value, context) {
+                            return value + '%';
+                        },
+                        color: 'black'
+                    },
+                    font: {
+                        family: 'Times New Roman, serif'
+                    }
+                },
+                legend: {
+                    display: false 
+                }
+            }
+        });
+
+        function playAudio(src) {
+
+            var audio = new Audio(src);
+            audio.play();
+        }
+    </script>
+</body>
+</html>
